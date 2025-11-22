@@ -2,7 +2,7 @@ __author__ = 'Yossi'
 # 2.6  client server October 2021
 
 import socket, sys,traceback
-
+from tcp_with_size import send_with_size, recv_by_size
 
 def logtcp(dir, byte_data):
     """
@@ -121,14 +121,11 @@ def main(ip):
             print("Selection error try again")
             continue
         try :
-            send_data(sock,to_send.encode())
-            byte_data = sock.recv(1000)   # todo improve it to recv by message size
-            if byte_data == b'':
-                print ('Seems server disconnected abnormal')
-                break
-            logtcp('recv',byte_data)
-            byte_data = byte_data[9:]  # remove length field
-            handle_reply(byte_data)
+            # send_data(sock,to_send.encode())
+            send_with_size(sock, to_send.encode())
+            # byte_data = sock.recv(1000)   # todo improve it to recv by message size
+            payload = recv_by_size(sock)
+            handle_reply(payload)
 
             if from_user == '4':
                 print('Will exit ...')
@@ -145,8 +142,64 @@ def main(ip):
     sock.close()
 
 
+def test_multiple_messages():
+    """
+    test sending multiple messages in a row without waiting for reply
+    """
+    sock= socket.socket()
+    ip = "127.0.0.1"
+    port = 1233
+    try:
+        sock.connect((ip,port))
+        print (f'Connect succeeded {ip}:{port}')
+    except:
+        print(f'Error while trying to connect.  Check ip or port -- {ip}:{port}')
+    messages = ['TIME', 'RAND', 'WHOU', 'EXIT']
+    all_requests = b''
+    for msg in messages:
+        bdata = msg.encode()
+        length_prefix = str(len(bdata)).zfill(8).encode() + b'~'
+        bytearray_data = length_prefix + bdata
+        all_requests += bytearray_data
+    
+    # Send all messages at once
+    sock.sendall(all_requests)
+    logtcp('sent', all_requests)
+    print("")
+    
+
+    # bdata1 = messages[0].encode()
+    # bdata2 = messages[1].encode()
+    # length_prefix1 = str(len(bdata1)).zfill(8).encode() + b'~'
+    # bytearray_data1 = length_prefix1 + bdata1
+    # length_prefix2 = str(len(bdata2)).zfill(8).encode() + b'~'
+    # bytearray_data2 = length_prefix2 + bdata2
+    # sock.sendall(bytearray_data1 + bytearray_data2)
+    # logtcp('sent', bytearray_data1 + bytearray_data2)
+    # print("")
+    # Now receive replies
+    while True:
+        try:
+            payload = recv_by_size(sock)
+            handle_reply(payload)
+            if payload.startswith(b'EXTR'):
+                print('Will exit ...')
+                break
+        except socket.error as err:
+            print(f'Got socket error: {err}')
+            break
+        except Exception as err:
+            print(f'General error: {err}')
+            print(traceback.format_exc())
+            break
+    
+    print ('Bye')
+    sock.close()
+
+
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        main(sys.argv[1])
-    else:
-        main('127.0.0.1')
+    test_multiple_messages()
+    # if len(sys.argv) > 1:
+    #     main(sys.argv[1])
+    # else:
+    #     main('127.0.0.1')
