@@ -2,29 +2,9 @@ __author__ = 'Yossi'
 # 2.6  client server October 2021
 
 import socket, sys,traceback
-from tcp_with_size import send_with_size, recv_by_size
+import argparse
+from tcp_with_size import send_with_size, recv_by_size, logtcp
 
-def logtcp(dir, byte_data):
-    """
-    log direction and all TCP byte array data
-    return: void
-    """
-    if dir == 'sent':
-        print(f'C LOG:Sent     >>>{byte_data}')
-    else:
-        print(f'C LOG:Recieved <<<{byte_data}')
-
-
-def send_data(sock, bdata):
-    """
-    send to client byte array data
-    will add 8 bytes message length as first field
-    e.g. from 'abcd' will send  b'00000004~abcd'
-    return: void
-    """
-    bytearray_data = str(len(bdata)).zfill(8).encode() + b'~' + bdata
-    sock.send(bytearray_data)
-    logtcp('sent', bytearray_data)
 
 
 def menu():
@@ -98,21 +78,19 @@ def handle_reply(reply):
         print(  '==========================================================')
 
 
-def main(ip):
+def main(host='127.0.0.1', port=1233):
     """
     main client - handle socket and main loop
     """
     connected = False
 
     sock= socket.socket()
-
-    port = 1233
     try:
-        sock.connect((ip,port))
-        print (f'Connect succeeded {ip}:{port}')
+        sock.connect((host,port))
+        print (f'Connect succeeded {host}:{port}')
         connected = True
     except:
-        print(f'Error while trying to connect.  Check ip or port -- {ip}:{port}')
+        print(f'Error while trying to connect.  Check ip or port -- {host}:{port}')
 
     while connected:
         from_user = menu()
@@ -123,8 +101,10 @@ def main(ip):
         try :
             # send_data(sock,to_send.encode())
             send_with_size(sock, to_send.encode())
-            # byte_data = sock.recv(1000)   # todo improve it to recv by message size
-            payload = recv_by_size(sock)
+            logtcp("Client", 'sent', to_send.encode())
+
+            length_data, payload = recv_by_size(sock)
+            logtcp("Client", 'recieved', length_data + payload)
             handle_reply(payload)
 
             if from_user == '4':
@@ -164,23 +144,14 @@ def test_multiple_messages():
     
     # Send all messages at once
     sock.sendall(all_requests)
-    logtcp('sent', all_requests)
-    print("")
+    logtcp("Client", 'sent', all_requests)
     
 
-    # bdata1 = messages[0].encode()
-    # bdata2 = messages[1].encode()
-    # length_prefix1 = str(len(bdata1)).zfill(8).encode() + b'~'
-    # bytearray_data1 = length_prefix1 + bdata1
-    # length_prefix2 = str(len(bdata2)).zfill(8).encode() + b'~'
-    # bytearray_data2 = length_prefix2 + bdata2
-    # sock.sendall(bytearray_data1 + bytearray_data2)
-    # logtcp('sent', bytearray_data1 + bytearray_data2)
-    # print("")
     # Now receive replies
     while True:
         try:
-            payload = recv_by_size(sock)
+            length_data, payload = recv_by_size(sock)
+            logtcp("Client", 'recieved', length_data + payload)
             handle_reply(payload)
             if payload.startswith(b'EXTR'):
                 print('Will exit ...')
@@ -196,10 +167,41 @@ def test_multiple_messages():
     print ('Bye')
     sock.close()
 
+def send_single_message():
+    if not args.send:
+        print('Send mode requires --send message')
+        sys.exit(2)
+    sock= socket.socket()
+    try:
+        sock.connect((args.host,args.port))
+        print (f'Connect succeeded {args.host}:{args.port}')
+    except:
+        print(f'Error while trying to connect.  Check ip or port -- {args.host}:{args.port}')
+        sys.exit(1)
+    try:
+        send_with_size(sock, args.send.encode())
+        length_data, payload = recv_by_size(sock)
+        logtcp("Client", 'recieved', length_data + payload)
+        handle_reply(payload)
+    except Exception as err:
+        print(f'Error during send: {err}')
+    sock.close()
+
+def _parse_args():
+    p = argparse.ArgumentParser(description='Simple TCP client')
+    p.add_argument('-H', '--host', default='127.0.0.1', help='Server host (default: 127.0.0.1)')
+    p.add_argument('-p', '--port', type=int, default=1233, help='Server port (default: 1233)')
+    p.add_argument('-m', '--mode', choices=['interactive','test','send'], default='interactive', help='Mode: interactive, test (multiple messages), send (single message)')
+    p.add_argument('-s', '--send', help='Message to send in send mode (e.g. TIME, RAND, WHOU, EXIT, or custom)')
+    return p.parse_args()
+
 
 if __name__ == '__main__':
-    test_multiple_messages()
-    # if len(sys.argv) > 1:
-    #     main(sys.argv[1])
-    # else:
-    #     main('127.0.0.1')
+    args = _parse_args()
+    if args.mode == 'test':
+        test_multiple_messages()
+    elif args.mode == 'send':
+        send_single_message()
+    else:
+        # interactive mode
+        main(args.host, args.port)
