@@ -180,6 +180,7 @@ def send_single_message():
         sys.exit(1)
     try:
         send_with_size(sock, args.send.encode())
+        logtcp("Client", 'sent', args.send.encode())
         length_data, payload = recv_by_size(sock)
         logtcp("Client", 'recieved', length_data + payload)
         handle_reply(payload)
