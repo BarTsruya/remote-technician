@@ -3,33 +3,9 @@ __author__ = 'Yossi'
 # 2.6  client server October 2021
 import socket, random, traceback
 import time, threading, os, datetime
-from tcp_with_size import send_with_size, recv_by_size
+from tcp_with_size import send_with_size, recv_by_size, logtcp
 
 all_to_die = False  # global
-
-
-def logtcp(dir,tid, byte_data):
-	"""
-	log direction, tid and all TCP byte array data
-	return: void
-	"""
-	if dir == 'sent':
-		print(f'{tid} S LOG:Sent     >>> {byte_data}')
-	else:
-		print(f'{tid} S LOG:Recieved <<< {byte_data}')
-
-
-def send_data(sock,tid,bdata):
-	"""
-	send to client byte array data
-	will add 8 bytes message length as first field
-	e.g. from 'abcd' will send  b'00000004~abcd'
-	return: void
-	"""
-	bytearray_data = str(len(bdata)).zfill(8).encode() + b'~' + bdata
-	sock.send(bytearray_data)
-	logtcp('sent',tid, bytearray_data)
-	print("")
 
 
 def check_length(message):
@@ -117,11 +93,12 @@ def handle_client(sock, tid , addr):
 			break
 		try:
 			# byte_data = sock.recv(1000)  # todo improve it to recv by message size
-			payload = recv_by_size(sock)
+			length_data, payload = recv_by_size(sock)
+			logtcp(f"Server with C{tid}", 'recieved', length_data + payload)
 			to_send , finish = handle_request(payload)
 			if to_send != '':
-				# send_data(sock, tid , to_send)
 				send_with_size(sock, to_send)
+				logtcp(f"Server with C{tid}", 'sent', to_send)
 			if finish:
 				time.sleep(1)
 				break

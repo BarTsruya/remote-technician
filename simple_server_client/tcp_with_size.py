@@ -1,14 +1,14 @@
 import socket
 
-def logtcp(dir, byte_data):
+def logtcp(name, dir, byte_data):
 	"""
 	log direction, tid and all TCP byte array data
 	return: void
 	"""
 	if dir == 'sent':
-		print(f'LOG:Sent     >>> {byte_data}')
+		print(f'{name} LOG: Sent >>> {byte_data}')
 	else:
-		print(f'LOG:Recieved <<< {byte_data}')
+		print(f'{name} LOG: Recieved <<< {byte_data}')
 
 
 def send_with_size(sock: socket.socket, bdata: bytes):
@@ -19,8 +19,6 @@ def send_with_size(sock: socket.socket, bdata: bytes):
     length_prefix = str(len(bdata)).zfill(8).encode() + b'~'
     bytearray_data = length_prefix + bdata
     sock.sendall(bytearray_data)
-    logtcp('sent', bytearray_data)
-    print("")
 
 def recv_by_size(sock: socket.socket) -> bytes:
     """
@@ -49,4 +47,4 @@ def recv_by_size(sock: socket.socket) -> bytes:
             raise ConnectionError("Socket closed while reading payload")
         payload += chunk
 
-    return payload
+    return length_data, payload
