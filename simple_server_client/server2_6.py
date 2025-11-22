@@ -3,6 +3,7 @@ __author__ = 'Yossi'
 # 2.6  client server October 2021
 import socket, random, traceback
 import time, threading, os, datetime
+from tcp_with_size import send_with_size, recv_by_size
 
 all_to_die = False  # global
 
@@ -115,19 +116,12 @@ def handle_client(sock, tid , addr):
 			print('will close due to main server issue')
 			break
 		try:
-			byte_data = sock.recv(1000)  # todo improve it to recv by message size
-			if byte_data == b'':
-				print ('Seems client disconnected')
-				break
-			logtcp('recv',tid, byte_data)
-			err_size = check_length(byte_data)
-			if err_size != b'':
-				to_send = err_size
-			else:
-				byte_data = byte_data[9:]   # remove length field
-				to_send , finish = handle_request(byte_data)
+			# byte_data = sock.recv(1000)  # todo improve it to recv by message size
+			payload = recv_by_size(sock)
+			to_send , finish = handle_request(payload)
 			if to_send != '':
-				send_data(sock, tid , to_send)
+				# send_data(sock, tid , to_send)
+				send_with_size(sock, to_send)
 			if finish:
 				time.sleep(1)
 				break
