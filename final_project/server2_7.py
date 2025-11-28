@@ -44,7 +44,7 @@ def exec_command(command):
 	return: 'succeed' or 'failed' or error message
 	"""
 	try:
-		ret = subprocess.call(command)
+		ret = subprocess.call(command[0])
 		return 'succeed' if ret == 0 else 'failed'
 	except FileNotFoundError:
 		return f"Failed: Command not found: {command[0]}"
@@ -52,7 +52,12 @@ def exec_command(command):
 		return f"Failed: Error running command: {e}"
 	
 
-
+def list_directory(path):
+	try:
+		files = os.listdir(path)
+		return 'LISR' + '~' + ', '.join(files)
+	except Exception as e:
+		return f'ERRR~004~Failed to list directory: {e}'
 
 
 def protocol_build_reply(request):
@@ -83,7 +88,12 @@ def protocol_build_reply(request):
 		if len(request_feilds) < 2:
 			reply = 'ERRR~003~Bad Format, EXEC needs command'
 		else:
-			reply = 'EXCR' + '~' + exec_command(request_feilds[1:])
+			reply = 'EXCR' + '~' + exec_command(request_feilds[1])
+	elif request_code == 'LIST':
+		if len(request_feilds) < 2:
+			reply = 'ERRR~003~Bad Format, LIST needs directory path'
+		else:
+			reply = list_directory(request_feilds[1])
 	else:
 		reply = 'ERRR~002~code not supported'
 	return reply.encode()

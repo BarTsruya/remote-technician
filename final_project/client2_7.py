@@ -17,7 +17,8 @@ def menu():
     print('\n  3. ask for name')
     print('\n  4. notify exit')
     print('\n  5. execute command')
-    return input('Input 1 - 5 > ' )
+    print('\n  6. list directory')
+    return input('Input 1 - 6 > ' )
 
 
 def protocol_build_request(from_user):
@@ -36,6 +37,9 @@ def protocol_build_request(from_user):
     elif from_user == '5':
         cmd = input("enter command to execute> ")
         return 'EXEC~' + cmd
+    elif from_user == '6':
+        path = input("enter directory path to list> ")
+        return 'LIST~' + path
     else:
         return ''
 
@@ -64,6 +68,8 @@ def protocol_parse_reply(reply):
             to_show = 'Server acknowledged the exit message'
         elif code == 'EXCR':
             to_show = 'Command execution result: ' + fields[1]
+        elif code == 'LISR':
+            to_show = 'Directory listing: ' + fields[1]
     except:
         print ('Server replay bad format')
     return to_show
