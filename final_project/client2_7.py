@@ -18,7 +18,8 @@ def menu():
     print('\n  4. notify exit')
     print('\n  5. execute command')
     print('\n  6. list directory')
-    return input('Input 1 - 6 > ' )
+    print('\n  7. delete file')
+    return input('Input 1 - 7 > ' )
 
 
 def protocol_build_request(from_user):
@@ -40,6 +41,9 @@ def protocol_build_request(from_user):
     elif from_user == '6':
         path = input("enter directory path to list> ")
         return 'LIST~' + path
+    elif from_user == '7':
+        path = input("enter file path to delete> ")
+        return 'DELF~' + path
     else:
         return ''
 
@@ -70,6 +74,8 @@ def protocol_parse_reply(reply):
             to_show = 'Command execution result: ' + fields[1]
         elif code == 'LISR':
             to_show = 'Directory listing: ' + fields[1]
+        elif code == 'DELR':
+            to_show = 'Delete file result: ' + fields[1]
     except:
         print ('Server replay bad format')
     return to_show

@@ -47,17 +47,28 @@ def exec_command(command):
 		ret = subprocess.call(command[0])
 		return 'succeed' if ret == 0 else 'failed'
 	except FileNotFoundError:
-		return f"Failed: Command not found: {command[0]}"
+		return f"Failed, Command not found: {command[0]}"
 	except Exception as e:
-		return f"Failed: Error running command: {e}"
+		return f"Failed, Error running command: {e}"
 	
 
 def list_directory(path):
 	try:
 		files = os.listdir(path)
 		return 'LISR' + '~' + ', '.join(files)
+	except FileNotFoundError:
+		return f'ERRR~004~File not found: {path}'
 	except Exception as e:
-		return f'ERRR~004~Failed to list directory: {e}'
+		return f'LISR~Failed to list directory: {e}'
+
+def delete_file(path):
+	try:
+		os.remove(path)
+		return 'DELR' + '~' + 'File deleted successfully'
+	except FileNotFoundError:
+		return f'ERRR~004~File not found: {path}'
+	except Exception as e:
+		return f'DELR~Failed to delete file: {e}'
 
 
 def protocol_build_reply(request):
@@ -94,6 +105,11 @@ def protocol_build_reply(request):
 			reply = 'ERRR~003~Bad Format, LIST needs directory path'
 		else:
 			reply = list_directory(request_feilds[1])
+	elif request_code == 'DELF':
+		if len(request_feilds) < 2:
+			reply = 'ERRR~003~Bad Format, DELF needs file path'
+		else:
+			reply = delete_file(request_feilds[1])
 	else:
 		reply = 'ERRR~002~code not supported'
 	return reply.encode()
