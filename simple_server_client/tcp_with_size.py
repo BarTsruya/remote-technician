@@ -1,3 +1,4 @@
+_author_ = 'Bar'
 import socket
 
 def logtcp(name, dir, byte_data):
