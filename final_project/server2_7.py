@@ -3,7 +3,7 @@ __author__ = 'Yossi'
 # 2.6  client server October 2021
 import socket, random, traceback
 import time, threading, os, datetime
-from tcp_with_size import send_with_size, recv_by_size, logtcp
+from tcp_by_size import send_with_size, recv_by_size
 
 all_to_die = False  # global
 
@@ -93,12 +93,10 @@ def handle_client(sock, tid , addr):
 			break
 		try:
 			# byte_data = sock.recv(1000)  # todo improve it to recv by message size
-			length_data, payload = recv_by_size(sock)
-			logtcp(f"Server with C{tid}", 'recieved', length_data + payload)
+			payload = recv_by_size(sock, name=f"Server TID {tid}")
 			to_send , finish = handle_request(payload)
 			if to_send != '':
-				send_with_size(sock, to_send)
-				logtcp(f"Server with C{tid}", 'sent', to_send)
+				send_with_size(sock, to_send, name=f"Server TID {tid}")
 			if finish:
 				time.sleep(1)
 				break
@@ -125,11 +123,11 @@ def main ():
 	"""
 	threads = []
 	srv_sock = socket.socket()
-	input("0")
+	print("0")
 	srv_sock.bind(('0.0.0.0', 1233))
-	input("1")
+	print("1")
 	srv_sock.listen(20)
-	input("2")
+	print("2")
 	#next line release the port
 	srv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 

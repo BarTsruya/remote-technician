@@ -3,7 +3,7 @@ __author__ = 'Yossi'
 
 import socket, sys,traceback
 import argparse
-from tcp_with_size import send_with_size, recv_by_size, logtcp
+from tcp_by_size import send_with_size, recv_by_size
 
 
 
@@ -99,12 +99,9 @@ def main(host='127.0.0.1', port=1233):
             print("Selection error try again")
             continue
         try :
-            # send_data(sock,to_send.encode())
-            send_with_size(sock, to_send.encode())
-            logtcp("Client", 'sent', to_send.encode())
+            send_with_size(sock, to_send, name="Client")
 
-            length_data, payload = recv_by_size(sock)
-            logtcp("Client", 'recieved', length_data + payload)
+            payload = recv_by_size(sock, name="Client")
             handle_reply(payload)
 
             if from_user == '4':
@@ -122,87 +119,13 @@ def main(host='127.0.0.1', port=1233):
     sock.close()
 
 
-def test_multiple_messages():
-    """
-    test sending multiple messages in a row without waiting for reply
-    """
-    sock= socket.socket()
-    ip = "127.0.0.1"
-    port = 1233
-    try:
-        sock.connect((ip,port))
-        print (f'Connect succeeded {ip}:{port}')
-    except:
-        print(f'Error while trying to connect.  Check ip or port -- {ip}:{port}')
-    messages = ['TIME', 'RAND', 'WHOU', 'EXIT']
-    all_requests = b''
-    for msg in messages:
-        bdata = msg.encode()
-        length_prefix = str(len(bdata)).zfill(8).encode() + b'~'
-        bytearray_data = length_prefix + bdata
-        all_requests += bytearray_data
-    
-    # Send all messages at once
-    sock.sendall(all_requests)
-    logtcp("Client", 'sent', all_requests)
-    
-
-    # Now receive replies
-    while True:
-        try:
-            length_data, payload = recv_by_size(sock)
-            logtcp("Client", 'recieved', length_data + payload)
-            handle_reply(payload)
-            if payload.startswith(b'EXTR'):
-                print('Will exit ...')
-                break
-        except socket.error as err:
-            print(f'Got socket error: {err}')
-            break
-        except Exception as err:
-            print(f'General error: {err}')
-            print(traceback.format_exc())
-            break
-    
-    print ('Bye')
-    sock.close()
-
-def send_single_message():
-    if not args.send:
-        print('Send mode requires --send message')
-        sys.exit(2)
-    sock= socket.socket()
-    try:
-        sock.connect((args.host,args.port))
-        print (f'Connect succeeded {args.host}:{args.port}')
-    except:
-        print(f'Error while trying to connect.  Check ip or port -- {args.host}:{args.port}')
-        sys.exit(1)
-    try:
-        send_with_size(sock, args.send.encode())
-        logtcp("Client", 'sent', args.send.encode())
-        length_data, payload = recv_by_size(sock)
-        logtcp("Client", 'recieved', length_data + payload)
-        handle_reply(payload)
-    except Exception as err:
-        print(f'Error during send: {err}')
-    sock.close()
-
 def _parse_args():
     p = argparse.ArgumentParser(description='Simple TCP client')
     p.add_argument('-H', '--host', default='127.0.0.1', help='Server host (default: 127.0.0.1)')
     p.add_argument('-p', '--port', type=int, default=1233, help='Server port (default: 1233)')
-    p.add_argument('-m', '--mode', choices=['interactive','test','send'], default='interactive', help='Mode: interactive, test (multiple messages), send (single message)')
-    p.add_argument('-s', '--send', help='Message to send in send mode (e.g. TIME, RAND, WHOU, EXIT, or custom)')
     return p.parse_args()
 
 
 if __name__ == '__main__':
     args = _parse_args()
-    if args.mode == 'test':
-        test_multiple_messages()
-    elif args.mode == 'send':
-        send_single_message()
-    else:
-        # interactive mode
-        main(args.host, args.port)
+    main(args.host, args.port)
