@@ -5,6 +5,8 @@ import socket, random, traceback
 import time, threading, os, datetime
 from tcp_by_size import send_with_size, recv_by_size
 
+import subprocess
+
 all_to_die = False  # global
 
 
@@ -35,6 +37,23 @@ def get_server_name():
 	"""return server name from os environment """
 	return  os.environ['COMPUTERNAME']
 
+def exec_command(command):
+	"""
+	execute command and return result 
+	Examples: notepad(c:\windows\system32\notepad.exe), calc, explorer, cmd, taskmgr
+	return: 'succeed' or 'failed' or error message
+	"""
+	try:
+		ret = subprocess.call(command)
+		return 'succeed' if ret == 0 else 'failed'
+	except FileNotFoundError:
+		return f"Failed: Command not found: {command[0]}"
+	except Exception as e:
+		return f"Failed: Error running command: {e}"
+	
+
+
+
 
 def protocol_build_reply(request):
 	"""
@@ -42,9 +61,16 @@ def protocol_build_reply(request):
 	function despatcher ! for each code will get to some function that handle specific request
 	Handle client request and prepare the reply info
 	string:return: reply
+	Examples:
+	rand request: b'0000005|RAND'
+	rand reply: b'0000006|RNDR~4'
+	exec request: b'0000013|EXEC~dir c:\\'
+	exec reply: b'0000006|EXCR~succeed'
 	"""
 	request_code = request[:4].decode()
-	request = request.decode("utf8")
+	request_feilds = request.decode("utf8").split('~')
+	# print("request_feilds:", request_feilds)
+	reply = ''
 	if request_code == 'TIME':
 		reply = 'TIMR' +'~' + get_time()
 	elif request_code == 'RAND':
@@ -53,9 +79,13 @@ def protocol_build_reply(request):
 		reply ='WHOR' + '~' + get_server_name()
 	elif request_code == 'EXIT':
 		reply= 'EXTR'
+	elif request_code == 'EXEC':
+		if len(request_feilds) < 2:
+			reply = 'ERRR~003~Bad Format, EXEC needs command'
+		else:
+			reply = 'EXCR' + '~' + exec_command(request_feilds[1:])
 	else:
 		reply = 'ERRR~002~code not supported'
-		fields = ''
 	return reply.encode()
 
 

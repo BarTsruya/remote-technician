@@ -16,8 +16,8 @@ def menu():
     print('\n  2. ask for random')
     print('\n  3. ask for name')
     print('\n  4. notify exit')
-    print('\n  (5. some invalid data for testing)')
-    return input('Input 1 - 4 > ' )
+    print('\n  5. execute command')
+    return input('Input 1 - 5 > ' )
 
 
 def protocol_build_request(from_user):
@@ -34,7 +34,8 @@ def protocol_build_request(from_user):
     elif from_user == '4':
         return 'EXIT'
     elif from_user == '5':
-        return input("enter free text data to send> ")
+        cmd = input("enter command to execute> ")
+        return 'EXEC~' + cmd
     else:
         return ''
 
@@ -60,7 +61,9 @@ def protocol_parse_reply(reply):
         elif code == 'ERRR':
             to_show = 'Server return an error: ' + fields[1] + ' ' + fields[2]
         elif code == 'EXTR':
-            to_show = 'Server acknowledged the exit message';
+            to_show = 'Server acknowledged the exit message'
+        elif code == 'EXCR':
+            to_show = 'Command execution result: ' + fields[1]
     except:
         print ('Server replay bad format')
     return to_show
