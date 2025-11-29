@@ -1,6 +1,7 @@
 __author__ = 'Yossi'
 
 # 2.6  client server October 2021
+import shutil
 import socket, random, traceback
 import time, threading, os, datetime
 from tcp_by_size import send_with_size, recv_by_size
@@ -70,6 +71,15 @@ def delete_file(path):
 	except Exception as e:
 		return f'DELR~Failed to delete file: {e}'
 
+def copy_file(src, dest):
+	try:
+		shutil.copy(src, dest)
+		return 'COPR' + '~' + 'File copied successfully'
+	except FileNotFoundError:
+		return f'ERRR~004~File not found: {src}'
+	except Exception as e:
+		return f'COPR~Failed to copy file: {e}'
+
 
 def protocol_build_reply(request):
 	"""
@@ -101,7 +111,7 @@ def protocol_build_reply(request):
 		else:
 			reply = 'EXCR' + '~' + exec_command(request_feilds[1])
 	elif request_code == 'LIST':
-		if len(request_feilds) < 2:
+		if len(request_feilds) < 2: # todo with liron
 			reply = 'ERRR~003~Bad Format, LIST needs directory path'
 		else:
 			reply = list_directory(request_feilds[1])
@@ -110,6 +120,11 @@ def protocol_build_reply(request):
 			reply = 'ERRR~003~Bad Format, DELF needs file path'
 		else:
 			reply = delete_file(request_feilds[1])
+	elif request_code == 'COPY':
+		if len(request_feilds) < 3:
+			reply = 'ERRR~003~Bad Format, COPY needs source and destination paths'
+		else:
+			reply = copy_file(request_feilds[1], request_feilds[2])
 	else:
 		reply = 'ERRR~002~code not supported'
 	return reply.encode()

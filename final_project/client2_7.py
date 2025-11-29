@@ -19,7 +19,8 @@ def menu():
     print('\n  5. execute command')
     print('\n  6. list directory')
     print('\n  7. delete file')
-    return input('Input 1 - 7 > ' )
+    print('\n  8. copy file')
+    return input('Input 1 - 8 > ' )
 
 
 def protocol_build_request(from_user):
@@ -44,6 +45,10 @@ def protocol_build_request(from_user):
     elif from_user == '7':
         path = input("enter file path to delete> ")
         return 'DELF~' + path
+    elif from_user == '8':
+        src = input("enter source file path to copy> ")
+        dest = input("enter destination file path> ")
+        return 'COPY~' + src + '~' + dest
     else:
         return ''
 
@@ -76,6 +81,8 @@ def protocol_parse_reply(reply):
             to_show = 'Directory listing: ' + fields[1]
         elif code == 'DELR':
             to_show = 'Delete file result: ' + fields[1]
+        elif code == 'COPR':
+            to_show = 'Copy file result: ' + fields[1]
     except:
         print ('Server replay bad format')
     return to_show
