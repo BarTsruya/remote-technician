@@ -7,6 +7,7 @@ import time, threading, os, datetime
 from tcp_by_size import send_with_size, recv_by_size
 
 import subprocess
+import glob
 
 all_to_die = False  # global
 
@@ -55,8 +56,10 @@ def exec_command(command):
 
 def list_directory(path):
 	try:
-		files = os.listdir(path)
-		return 'LISR' + '~' + ', '.join(files)
+		files_list = glob.glob(os.path.join(path, '*'))
+		files = [os.path.basename(f) for f in files_list]
+		print("files:", files)
+		return 'LISR' + '~' + '|'.join(files)
 	except FileNotFoundError:
 		return f'ERRR~004~File not found: {path}'
 	except Exception as e:
@@ -79,7 +82,6 @@ def copy_file(src, dest):
 		return f'ERRR~004~File not found: {src}'
 	except Exception as e:
 		return f'COPR~Failed to copy file: {e}'
-
 
 def protocol_build_reply(request):
 	"""

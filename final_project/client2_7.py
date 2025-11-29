@@ -78,7 +78,7 @@ def protocol_parse_reply(reply):
         elif code == 'EXCR':
             to_show = 'Command execution result: ' + fields[1]
         elif code == 'LISR':
-            to_show = 'Directory listing: ' + fields[1]
+            to_show = 'Directory listing: \n' + '\n'.join(fields[1].split('|'))
         elif code == 'DELR':
             to_show = 'Delete file result: ' + fields[1]
         elif code == 'COPR':
