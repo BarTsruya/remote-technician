@@ -83,6 +83,27 @@ def copy_file(src, dest):
 	except Exception as e:
 		return f'COPR~Failed to copy file: {e}'
 
+def download_file(sock, src_path):
+	try:
+		file_size = os.path.getsize(src_path)
+		with open(src_path, "rb") as f:
+			chunk_size = 4096
+			total_chunks = (file_size + chunk_size - 1) // chunk_size
+			chunk_index = 1
+			while True:
+				data = f.read(chunk_size)
+				if not data:
+					break
+				reply = b'DWNR~' + str(total_chunks).encode() + b'~' + str(chunk_index).encode() + b'~' + data
+				send_with_size(sock, reply, name=f"Server download")
+				chunk_index += 1
+		return True
+	except Exception as e:
+		error_msg = f'ERRR~004~File not found: {src_path}'
+		send_with_size(sock, error_msg.encode(), name=f"Server download")
+		return False
+
+
 def protocol_build_reply(request):
 	"""
 	Application Business Logic
@@ -132,23 +153,33 @@ def protocol_build_reply(request):
 	return reply.encode()
 
 
-def handle_request(request):
-	"""
-	Hadle client request
-	tuple :return: return message to send to client and bool if to close the client socket
-	"""
-	try:
-		request_code = request[:4]
-		to_send = protocol_build_reply(request)
-		if request_code == b'EXIT':
-			return to_send, True
-	except Exception as err:
-		print(traceback.format_exc())
-		to_send =  b'ERRR~001~General error'
-	return to_send, False
+def handle_request(sock, request):
+    """
+    Handle client request
+    tuple :return: return message to send to client and bool if to close the client socket
+    """
+    try:
+        request_code = request[:4]
+        request_feilds = request.decode("utf8").split('~')
+
+        if request_code == b'DWNL':  # special case for download
+            success = download_file(sock, request_feilds[1])
+            if success:
+                return b'DONE~file downloading finished successfuly', False
+            else:
+                return b'DONE~somthing went wrong in file downloading', False
+        else:
+            to_send = protocol_build_reply(request)
+        
+        if request_code == b'EXIT':
+            return to_send, True
+    except Exception as err:
+        print(traceback.format_exc())
+        to_send = b'ERRR~001~General error'
+    return to_send, False
 
 
-def handle_client(sock, tid , addr):
+def handle_client(sock, tid, addr):
 	"""
 	Main client thread loop (in the server),
 	:param sock: client socket
@@ -167,8 +198,8 @@ def handle_client(sock, tid , addr):
 		try:
 			# byte_data = sock.recv(1000)  # todo improve it to recv by message size
 			payload = recv_by_size(sock, name=f"Server TID {tid}")
-			to_send , finish = handle_request(payload)
-			if to_send != '':
+			to_send, finish = handle_request(sock, payload)  # pass sock here
+			if to_send != b'':
 				send_with_size(sock, to_send, name=f"Server TID {tid}")
 			if finish:
 				time.sleep(1)
