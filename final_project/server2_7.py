@@ -8,6 +8,7 @@ from tcp_by_size import send_with_size, recv_by_size
 
 import subprocess
 import glob
+import pyautogui
 
 all_to_die = False  # global
 
@@ -87,7 +88,7 @@ def download_file(sock, src_path):
 	try:
 		file_size = os.path.getsize(src_path)
 		with open(src_path, "rb") as f:
-			chunk_size = 4096
+			chunk_size = 1024
 			total_chunks = (file_size + chunk_size - 1) // chunk_size
 			chunk_index = 1
 			while True:
@@ -97,14 +98,27 @@ def download_file(sock, src_path):
 				reply = b'DWNR~' + str(total_chunks).encode() + b'~' + str(chunk_index).encode() + b'~' + data
 				send_with_size(sock, reply, name=f"Server download")
 				chunk_index += 1
-		return True
+		return 'DONE~file downloading finished successfuly'
 	except Exception as e:
 		error_msg = f'ERRR~004~File not found: {src_path}'
 		send_with_size(sock, error_msg.encode(), name=f"Server download")
-		return False
+		return 'DONE~somthing went wrong in file downloading'
 
+def screen_shot(sock, image_path):
+	try:
+		screenshot = pyautogui.screenshot()
+		screenshot.save(image_path)
+		time.sleep(10)
+		# verify save
+		if os.path.isfile(image_path) and os.path.getsize(image_path) > 0:
+			screen_shot_reply = 'SCRR' + '~Image saved in ' + image_path + ' on server side'
+			send_with_size(sock, screen_shot_reply.encode(), name=f"Server screenshot")
+			return download_file(sock, image_path)
+		return f'ERRR~005~Failed to take screenshot: Image not saved properly'
+	except Exception as e:
+		return f'ERRR~005~Failed to take screenshot: {e}'
 
-def protocol_build_reply(request):
+def protocol_build_reply(sock, request):
 	"""
 	Application Business Logic
 	function despatcher ! for each code will get to some function that handle specific request
@@ -148,6 +162,16 @@ def protocol_build_reply(request):
 			reply = 'ERRR~003~Bad Format, COPY needs source and destination paths'
 		else:
 			reply = copy_file(request_feilds[1], request_feilds[2])
+	elif request_code == 'DWNL':
+		if len(request_feilds) < 2:
+			reply = 'ERRR~003~Bad Format, DWNL needs file path'
+		else:
+			reply = download_file(sock, request_feilds[1])
+	elif request_code == 'SCRN':
+		if len(request_feilds) < 2:
+			reply = 'ERRR~003~Bad Format, SCRN needs image path'
+		else:
+			reply = screen_shot(sock, request_feilds[1])
 	else:
 		reply = 'ERRR~002~code not supported'
 	return reply.encode()
@@ -160,16 +184,8 @@ def handle_request(sock, request):
     """
     try:
         request_code = request[:4]
-        request_feilds = request.decode("utf8").split('~')
 
-        if request_code == b'DWNL':  # special case for download
-            success = download_file(sock, request_feilds[1])
-            if success:
-                return b'DONE~file downloading finished successfuly', False
-            else:
-                return b'DONE~somthing went wrong in file downloading', False
-        else:
-            to_send = protocol_build_reply(request)
+        to_send = protocol_build_reply(sock, request)
         
         if request_code == b'EXIT':
             return to_send, True

@@ -6,6 +6,7 @@ import argparse
 from tcp_by_size import send_with_size, recv_by_size
 
 dest_path_global = ''  # global variable to hold destination path for download
+counter = 0
 
 def menu():
     """
@@ -21,7 +22,8 @@ def menu():
     print('\n  7. delete file')
     print('\n  8. copy file')
     print('\n  9. download file')
-    return input('Input 1 - 9 > ' )
+    print('\n 10. take screenshot')
+    return input('Input 1 - 10 > ' )
 
 
 def protocol_build_request(from_user):
@@ -55,6 +57,10 @@ def protocol_build_request(from_user):
         src_path = input("enter file path to download> ")
         dest_path_global = input("enter destination path to save the file> ")
         return 'DWNL~' + src_path
+    elif from_user == '10':
+        image_path = input("enter image path to save screenshot> ")
+        dest_path_global = input("enter destination path to download the screenshot> ")
+        return 'SCRN~' + image_path
     else:
         return ''
 
@@ -64,7 +70,7 @@ def protocol_parse_reply(sock, reply):
     parse the server reply and prepare it to user
     return: answer from server string
     """
-    global dest_path_global
+    global dest_path_global, counter
     to_show = 'Invalid reply from server'
     try:
         if reply.startswith(b'DWNR'):
@@ -74,7 +80,7 @@ def protocol_parse_reply(sock, reply):
             chunk_index = int(fields[2])
             
             print('\n==========================================================')
-            while chunk_index <= total_chunks:
+            while counter <= total_chunks:
                 file_data = fields[3]  # already bytes
                 # file_data = fields[3].encode('latin1')  # to get original bytes
                 to_show = f'Receiving chunk {chunk_index} of {total_chunks}'
@@ -90,10 +96,15 @@ def protocol_parse_reply(sock, reply):
                 reply = recv_by_size(sock, name="Client")
                 fields = reply.split(b'~', 3)
                 chunk_index = int(fields[2])
+                counter += 1
             to_show = f'File download completed successfully to: {dest_path_global}'
+            counter = 0  # reset counter for next download
             
             # C:\Users\barts\OneDrive\Documents\package.txt
             # C:\Users\barts\OneDrive\Documents\clones\remote-technician\package.txt
+
+            # C:\Users\barts\OneDrive\Documents\image1.jpg
+            # C:\Users\barts\OneDrive\Documents\clones\remote-technician\image1.jpg
         else: 
             reply = reply.decode()
             if '~' in reply:
