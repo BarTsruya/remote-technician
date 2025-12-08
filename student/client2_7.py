@@ -56,8 +56,9 @@ def protocol_build_request(from_user):
         dest=input('wher you want to copy it')
         return f'COPY|{file_to_copy}|{dest}'
     elif from_user =='9':
-        dest = input ('wher you want to save the screenshot')
-        return f'SCRN|{dest}'
+        image_path = input ('wher you want to save the screenshot on server')
+        dest_path= input('wher you want to save the screenshot on client')
+        return f'SCRN|{image_path}'
     elif from_user =='10':
         src_path=input('file path to downlode')
         dest_path= input('wher to save the file')

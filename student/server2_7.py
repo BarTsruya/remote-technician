@@ -64,11 +64,12 @@ def copy(source,dest):
 	except Exception as e:
 		return f'ERRR~001~{e}'
 	
-def screenshot(dest):
+def screenshot(sock, dest):
 	try:
 		image = pyautogui.screenshot()
 		image.save(dest)
-		return f'SCRR~image saved in {dest}'
+		return downlowde_file(sock, dest)
+		# return f'SCRR~image saved in {dest}'
 	except Exception as e:
 		return f'ERRR~001~{e}'
 
@@ -129,7 +130,7 @@ def protocol_build_reply(sock,request):
 	elif request_code == 'SCRN':
 		fields=request.split('|')
 		dest = fields[1]
-		reply = screenshot(dest)
+		reply = screenshot(sock, dest)
 	elif request_code == 'DWNL':
 		fields=request.split('|')
 		src = fields[1]
